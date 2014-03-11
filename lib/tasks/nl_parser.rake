@@ -23,34 +23,34 @@ class Page
 end
 
 class WrittenQuestionPage
-  def self.parse(url)
+  def self.parse(url, prefix)
     kv = Page.get(url)
     remapper = {
       'DC.type' => 'type',
-      'DCTERMS.issued' => 'published',
+      'DCTERMS.issued' => prefix + '_published',
       'OVERHEID.organisationType' => 'organisation',
-      'DCTERMS.available' => 'available',
-      'DC.title' => 'title', #TODO: dutch differs between question and answer title
+      'DCTERMS.available' => prefix + '_available',
+      'DC.title' => prefix + '_title', #TODO: dutch differs between question and answer title
       'OVERHEID.category' => 'category',
       'DC.creator' => 'creator',
       'OVERHEIDop.datumIndiening' => 'submitted',
       'DC.identifier' => 'id',
       'OVERHEIDop.vergaderjaar' => 'season',
       'OVERHEIDop.indiener' => 'submitter',
-      'OVERHEIDop.vraagnummer' => 'question_id',
+      'OVERHEIDop.vraagnummer' => 'question',
       'OVERHEIDop.documentStatus' => 'status',
       'DCTERMS.language' => 'language',
-      'OVERHEIDop.publicationName' => 'pubilication',
+      'OVERHEIDop.publicationName' => 'publication',
       'OVERHEIDop.datumOntvangst' => 'answered',
       'OVERHEIDop.ontvanger' => 'recepient',
-      'OVERHEIDop.aanhangselNummer' => 'attachment_number',
+      'OVERHEIDop.aanhangselNummer' => 'attachment',
       
     }
-    meta_headers = kv.css('/html/head//meta').map do |meta|
+    meta_headers = kv.css('/html/head//meta').select { |meta| meta.css('@name')[0].to_s != '' }.map do |meta|
       orig_meta_name = meta.css('@name')[0].to_s
       if remapper.has_key?(orig_meta_name) then
         meta_name = remapper[orig_meta_name]
-      elsif orig_meta_name != ''
+      else
         meta_name = orig_meta_name
       end
       {
@@ -75,12 +75,12 @@ class WrittenQuestionPDF
 end
 
 class RssPage
-  def self.parse(url)
+  def self.parse(url, prefix)
     rss = Page.get(url)
-    items = rss.css('//item').map do |item|
+    items = rss.css('//item')[0..5].map do |item|
       id, house = item.css('title/text()')[0].to_s.split(/\s*:\s*/, 2)
       link = item.css('link/text()')[0].to_s
-      data = WrittenQuestionPage.parse(link)
+      data = WrittenQuestionPage.parse(link, prefix)
       text = WrittenQuestionPDF.convert(data[:pdf_link])
       {
         :id => id,
@@ -99,8 +99,8 @@ namespace :wq do
   namespace :nl do
     desc "parses nl written questions"
     task :parse => [:environment] do
-      pp RssPage.parse('https://zoek.officielebekendmakingen.nl/kamervragen_aanhangsel/rss')
-      # pp RssPage.parse('https://zoek.officielebekendmakingen.nl/kamervragen_zonder_antwoord/rss')
+      pp RssPage.parse('https://zoek.officielebekendmakingen.nl/kamervragen_aanhangsel/rss', 'answer')
+      # pp RssPage.parse('https://zoek.officielebekendmakingen.nl/kamervragen_zonder_antwoord/rss', 'question')
     end
   end
 end

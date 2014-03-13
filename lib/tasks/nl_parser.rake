@@ -2,6 +2,10 @@ require 'httparty'
 require 'nokogiri'
 require 'pp'
 
+def collect_values(hashes)
+  {}.tap{ |r| hashes.each{ |h| h.each{ |k,v| (r[k]||=[]) << v } } }
+end
+
 class HtmlParserIncluded < HTTParty::Parser
   SupportedFormats.merge!(
     'text/html' => :html,
@@ -59,7 +63,7 @@ class WrittenQuestionPage
     end
     pdf_link = 'https://zoek.officielebekendmakingen.nl/' + kv.css('#downloadPdfHyperLink/@href')[0].value
     {
-      :meta => meta_headers,
+      :meta => collect_values(meta_headers),
       :pdf_link => pdf_link
     }
   end
@@ -88,8 +92,9 @@ class RssPage
         :description => item.css('description/text()')[0].to_s,
         :pub_date => item.css('pubDate/text()')[0].to_s,
         :link => link,
+        :link_question => 'https://zoek.officielebekendmakingen.nl/kv-tk-%s.html' % data[:meta]['question'][0].to_s,
         :data => data,
-        :text => text
+        :text => text,
       }
     end
   end

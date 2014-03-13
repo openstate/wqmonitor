@@ -85,14 +85,16 @@ class RssPage
       id, house = item.css('title/text()')[0].to_s.split(/\s*:\s*/, 2)
       link = item.css('link/text()')[0].to_s
       data = WrittenQuestionPage.parse(link, prefix)
+      link_question = 'https://zoek.officielebekendmakingen.nl/kv-tk-%s.html' % data[:meta]['question'][0].to_s
       text = WrittenQuestionPDF.convert(data[:pdf_link])
+      
       {
         :id => id,
         :house => house,
         :description => item.css('description/text()')[0].to_s,
         :pub_date => item.css('pubDate/text()')[0].to_s,
         :link => link,
-        :link_question => 'https://zoek.officielebekendmakingen.nl/kv-tk-%s.html' % data[:meta]['question'][0].to_s,
+        :link_question => link_question,
         :data => data,
         :text => text,
       }
